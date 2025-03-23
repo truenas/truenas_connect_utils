@@ -1,6 +1,7 @@
 import logging
 
 from .config import get_account_id_and_system_id
+from .exceptions import CallError
 from .request import call
 from .urls import get_hostname_url
 
@@ -32,3 +33,16 @@ async def hostname_config(tnc_config: dict) -> dict:
         'tnc_configured': True,
         'hostname_configured': bool(resp['hostname_details']),
     }
+
+
+async def register_update_ips(tnc_config: dict, ips: list[str]) -> dict:
+    logger.debug('Updating TNC hostname configuration with %r ips', ','.join(ips))
+    config = await hostname_config(tnc_config)
+    if config['error']:
+        raise CallError(f'Failed to fetch TNC hostname configuration: {config["error"]}')
+
+    creds = get_account_id_and_system_id(tnc_config)
+    return await call(
+        get_hostname_url(tnc_config).format(**creds), 'put', payload={'ips': ips},
+        tnc_config=tnc_config, include_auth=True,
+    )
