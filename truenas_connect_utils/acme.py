@@ -5,10 +5,14 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from josepy import JWKRSA
 from jsonschema import validate as jsonschema_validate, ValidationError as JSONValidationError
+from truenas_acme_utils.issue_cert import issue_certificate
 
-from .cert import CERT_BOT_EMAIL
-from .config import get_account_id_and_system_id
+from .cert import CERT_BOT_EMAIL, get_hostnames_from_hostname_config, generate_csr
+from .config import get_account_id_and_system_id, run_in_thread
+from .exceptions import CallError
+from .hostname import hostname_config
 from .request import call
+from .tnc_authenticator import TrueNASConnectAuthenticator
 from .urls import get_acme_config_url
 
 
@@ -94,3 +98,24 @@ def normalize_acme_config(config: dict) -> dict:
         }
     }
     return config
+
+
+async def create_cert(tnc_config: dict) -> dict:
+    tnc_hostname_config = await hostname_config(tnc_config)
+    if tnc_hostname_config['error']:
+        raise CallError(f'Failed to fetch TN Connect hostname config: {tnc_hostname_config["error"]}')
+
+    tnc_acme_config = await acme_config(tnc_config)
+    if tnc_acme_config['error']:
+        raise CallError(f'Failed to fetch TN Connect ACME config: {tnc_acme_config["error"]}')
+
+    hostnames = get_hostnames_from_hostname_config(tnc_hostname_config)
+    csr, private_key = await run_in_thread(generate_csr, hostnames)
+    authenticator_mapping = {f'DNS:{hostname}': TrueNASConnectAuthenticator(tnc_config) for hostname in hostnames}
+    final_order = await run_in_thread(issue_certificate, tnc_acme_config['acme_details'], csr, authenticator_mapping)
+    return {
+        'cert': final_order.fullchain_pem,
+        'acme_uri': final_order.uri,
+        'private_key': private_key,
+        'csr': csr,
+    }
