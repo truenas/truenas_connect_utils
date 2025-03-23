@@ -12,6 +12,7 @@ def auth_headers(config: dict) -> dict:
 async def call(
     endpoint: str, mode: str, *, options: dict | None = None, payload: dict | None = None,
     headers: dict | None = None, json_response: bool = True, get_response: bool = True,
+    tnc_config: dict | None = None, include_auth: bool = False,
 ) -> dict[str, Any]:
     options = options or {}
     timeout = options.get('timeout', 15)
@@ -20,9 +21,17 @@ async def call(
         'response': {},
         'status_code': None,
     }
-    if payload is not None and (headers is None or 'Content-Type' not in headers):
+    headers = headers or {}
+    if payload is not None and (not headers or 'Content-Type' not in headers):
         headers = headers or {}
         headers['Content-Type'] = 'application/json'
+
+    if include_auth:
+        if not tnc_config:
+            raise ValueError('tnc_config is required when include_auth is set')
+
+        headers |= auth_headers(tnc_config)
+
     try:
         async with asyncio.timeout(timeout):
             async with aiohttp.ClientSession(raise_for_status=True, trust_env=True) as session:
