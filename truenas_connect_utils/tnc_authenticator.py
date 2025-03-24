@@ -3,11 +3,12 @@ import logging
 import requests
 import time
 
+from .exceptions import CallError
 from .request import auth_headers
 from .urls import get_leca_cleanup_url, get_leca_dns_url
 
 
-logger = logging.getLogger()
+logger = logging.getLogger('truenas_connect')
 
 
 class TrueNASConnectAuthenticator:
@@ -22,7 +23,7 @@ class TrueNASConnectAuthenticator:
         try:
             perform_ret = self._perform(domain, validation_name, validation_content)
         except Exception as e:
-            raise Exception(f'Failed to perform {self.NAME} challenge for {domain!r} domain: {e}')
+            raise CallError(f'Failed to perform {self.NAME} challenge for {domain!r} domain: {e}')
         else:
             self.wait_for_records_to_propagate(perform_ret)
 
@@ -33,13 +34,13 @@ class TrueNASConnectAuthenticator:
         try:
             self._cleanup(domain, validation_name, validation_content)
         except Exception as e:
-            raise Exception(f'Failed to cleanup {self.NAME} challenge for {domain!r} domain: {e}')
+            raise CallError(f'Failed to cleanup {self.NAME} challenge for {domain!r} domain: {e}')
 
     def _perform(self, domain, validation_name, validation_content):
         try:
             self._perform_internal(domain, validation_name, validation_content)
         except Exception as e:
-            raise Exception(f'Failed to perform {self.NAME} challenge for {domain!r} domain: {e}')
+            raise CallError(f'Failed to perform {self.NAME} challenge for {domain!r} domain: {e}')
 
     def _perform_internal(self, domain, validation_name, validation_content):
         logger.debug(
@@ -52,10 +53,10 @@ class TrueNASConnectAuthenticator:
                 'hostnames': [domain],  # We should be using validation name here
             }), headers=auth_headers(self.tnc_config), timeout=30)
         except requests.Timeout:
-            raise Exception(f'Timeout while performing {self.NAME} challenge for {domain!r} domain')
+            raise CallError(f'Timeout while performing {self.NAME} challenge for {domain!r} domain')
 
         if response.status_code != 201:
-            raise Exception(
+            raise CallError(
                 f'Failed to perform {self.NAME} challenge for {domain!r} domain with '
                 f'{response.status_code!r} status code: {response.text}'
             )
