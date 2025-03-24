@@ -1,0 +1,27 @@
+Source: truenas-connect-utils
+Section: contrib/python
+Priority: optional
+Maintainer: Waqar Ahmed <waqar@ixsystems.com>
+Build-Depends: debhelper-compat (= 12),
+               dh-python,
+               python3-dev,
+               python3-jwt,
+               python3-requests,
+               python3-setuptools,
+               python3-truenas-api-client,
+               python3-truenas-crypto-utils
+Standards-Version: 4.4.1
+Homepage: https://github.com/truenas/truenas_connect_utils
+Testsuite: autopkgtest-pkg-python
+
+Package: python3-truenas-connect-utils
+Architecture: any
+Depends: python3-jwt,
+         python3-requests,
+         python3-truenas-api-client,
+         python3-truenas-crypto-utils,
+         ${shlibs:Depends},
+         ${misc:Depends},
+         ${python3:Depends}
+Description: TrueNAS Connect utils.
+ This package provides TrueNAS Connect related utils.

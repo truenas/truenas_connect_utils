@@ -1,0 +1,5 @@
+truenas-connect-utils (0.1-0~truenas+1) bullseye-truenas-unstable; urgency=medium
+
+  * Initial release
+
+ -- Waqar Ahmed <waqar@ixsystems.com>  Fri, 2 Jun 2024 00:26:21 +0500
