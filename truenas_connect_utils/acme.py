@@ -4,7 +4,6 @@ from urllib.parse import urlparse
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from josepy import JWKRSA
-from jsonschema import validate as jsonschema_validate, ValidationError as JSONValidationError
 from truenas_acme_utils.issue_cert import issue_certificate
 
 from .cert import CERT_BOT_EMAIL, get_hostnames_from_hostname_config, generate_csr
@@ -17,35 +16,6 @@ from .urls import get_acme_config_url
 
 
 logger = logging.getLogger('truenas_connect')
-
-
-ACME_CONFIG_JSON_SCHEMA = {
-    '$schema': 'http://json-schema.org/draft-07/schema#',
-    'type': 'object',
-    'properties': {
-        'endpoint': {
-            'type': 'string',
-        },
-        'account': {
-            'type': 'object',
-            'properties': {
-                'status': {
-                    'type': 'string',
-                },
-                'uri': {
-                    'type': 'string',
-                },
-                'key': {
-                    'type': 'string',
-                }
-            },
-            'required': ['status', 'uri', 'key'],
-            'additionalProperties': True,
-        }
-    },
-    'required': ['endpoint', 'account'],
-    'additionalProperties': True,
-}
 
 
 async def acme_config(tnc_config: dict) -> dict:
@@ -71,21 +41,35 @@ async def acme_config(tnc_config: dict) -> dict:
 
 
 def normalize_acme_config(config: dict) -> dict:
-    try:
-        jsonschema_validate(config['acme_details'], ACME_CONFIG_JSON_SCHEMA)
-    except JSONValidationError as e:
-        config['error'] = f'Failed to validate ACME config: {e}'
+    acme_details = config.get('acme_details')
+    if isinstance(acme_details, dict) is False:
+        config['error'] = 'ACME config is not a dictionary'
         return config
 
-    acme_details = config['acme_details']
+    account_details = acme_details.get('account')
+    if isinstance(account_details, dict) is False:
+        config['error'] = 'ACME account details are not a dictionary'
+        return config
+
+    if missing_keys := [
+        k for k in ('status', 'uri', 'key') if k not in account_details or not isinstance(account_details[k], str)
+    ]:
+        config['error'] = f'Missing or invalid fields in ACME account: {", ".join(missing_keys)}'
+        return config
+
+    endpoint = acme_details.get('endpoint')
+    if isinstance(endpoint, str) is False:
+        config['error'] = 'ACME endpoint is not a string'
+        return config
+
     private_key = serialization.load_pem_private_key(
-        acme_details['account']['key'].encode(), password=None, backend=default_backend()
+        account_details['key'].encode(), password=None, backend=default_backend()
     )
     jwk_rsa = JWKRSA(key=private_key)
-    parsed_url = urlparse(f'https://{acme_details["endpoint"]}')
+    parsed_url = urlparse(f'https://{endpoint}')
     config['acme_details'] = {
-        'uri': acme_details['account']['uri'],
-        'directory': acme_details['endpoint'],
+        'uri': account_details['uri'],
+        'directory': endpoint,
         'tos': True,
         'new_account_uri': f'{parsed_url.scheme}://{parsed_url.netloc}/acme/new-acct',
         'new_nonce_uri': f'{parsed_url.scheme}://{parsed_url.netloc}/acme/new-nonce',
@@ -93,7 +77,7 @@ def normalize_acme_config(config: dict) -> dict:
         'revoke_cert_uri': f'{parsed_url.scheme}://{parsed_url.netloc}/acme/revoke-cert',
         'body': {
             'contact': CERT_BOT_EMAIL,
-            'status': acme_details['account']['status'],
+            'status': account_details['status'],
             'key': jwk_rsa.json_dumps(),
         }
     }
