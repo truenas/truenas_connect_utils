@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from urllib.parse import urlparse
 
@@ -7,7 +8,7 @@ from josepy import JWKRSA
 from truenas_acme_utils.issue_cert import issue_certificate
 
 from .cert import CERT_BOT_EMAIL, get_hostnames_from_hostname_config, generate_csr
-from .config import get_account_id_and_system_id, run_in_thread
+from .config import get_account_id_and_system_id
 from .exceptions import CallError
 from .hostname import hostname_config
 from .request import call
@@ -96,14 +97,16 @@ async def create_cert(tnc_config: dict, csr_details: dict | None = None) -> dict
     hostnames = get_hostnames_from_hostname_config(tnc_hostname_config)
     if csr_details is None:
         logger.debug('Generating CSR for TNC certificate')
-        csr, private_key = await run_in_thread(generate_csr, hostnames)
+        csr, private_key = await asyncio.to_thread(generate_csr, hostnames)
     else:
         logger.debug('Retrieved CSR of existing TNC certificate')
         csr, private_key = csr_details['csr'], csr_details['private_key']
 
     authenticator_mapping = {f'DNS:{hostname}': TrueNASConnectAuthenticator(tnc_config) for hostname in hostnames}
     logger.debug('Performing ACME challenge for TNC certificate')
-    final_order = await run_in_thread(issue_certificate, tnc_acme_config['acme_details'], csr, authenticator_mapping)
+    final_order = await asyncio.to_thread(
+        issue_certificate, tnc_acme_config['acme_details'], csr, authenticator_mapping, 25
+    )
     return {
         'cert': final_order.fullchain_pem,
         'acme_uri': final_order.uri,
