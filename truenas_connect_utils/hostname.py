@@ -22,7 +22,7 @@ async def hostname_config(tnc_config: dict) -> dict:
 
     resp = (await call(
         get_hostname_url(tnc_config).format(**creds), 'get', tnc_config=tnc_config, include_auth=True,
-    ))  | {'base_domain': None}
+    )) | {'base_domain': None}
     resp['hostname_details'] = resp.pop('response')
     for domain in resp['hostname_details']:
         if len(domain.rsplit('.', maxsplit=4)) == 5 and domain.startswith('*.'):
