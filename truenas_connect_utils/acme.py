@@ -7,7 +7,7 @@ from cryptography.hazmat.primitives import serialization
 from josepy import JWKRSA
 from truenas_acme_utils.issue_cert import issue_certificate
 
-from .cert import CERT_BOT_EMAIL, get_hostnames_from_hostname_config, generate_csr
+from .cert import get_hostnames_from_hostname_config, generate_csr
 from .config import get_account_id_and_system_id
 from .exceptions import CallError
 from .hostname import hostname_config
@@ -77,7 +77,6 @@ def normalize_acme_config(config: dict) -> dict:
         'new_order_uri': f'{parsed_url.scheme}://{parsed_url.netloc}/acme/new-order',
         'revoke_cert_uri': f'{parsed_url.scheme}://{parsed_url.netloc}/acme/revoke-cert',
         'body': {
-            'contact': CERT_BOT_EMAIL,
             'status': account_details['status'],
             'key': jwk_rsa.json_dumps(),
         }
