@@ -10,6 +10,7 @@ TNC_CONFIG_SCHEMA = {
         'certificate_private_key': {'oneOf': [{'type': 'null'}, {'type': 'string'}]},
         'account_service_base_url': {'type': 'string'},
         'leca_service_base_url': {'type': 'string'},
+        'heartbeat_service_base_url': {'type': 'string'},
         'tnc_base_url': {'type': 'string'},
         'claim_token': {'oneOf': [{'type': 'null'}, {'type': 'string'}]},
         'claim_token_expiration': {'oneOf': [{'type': 'null'}, {'type': 'number'}]},
