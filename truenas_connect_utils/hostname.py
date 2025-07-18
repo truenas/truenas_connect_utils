@@ -36,7 +36,10 @@ async def hostname_config(tnc_config: dict) -> dict:
 
 
 async def register_update_ips(tnc_config: dict, ips: list[str], create_wildcard: bool) -> dict:
-    logger.debug('Updating TNC hostname configuration with %r ips', ','.join(ips))
+    logger.debug(
+        'Updating TNC hostname configuration with %r ips and with create_wildcard %r value',
+        ','.join(ips), create_wildcard
+    )
     config = await hostname_config(tnc_config)
     if config['error']:
         raise CallError(f'Failed to fetch TNC hostname configuration: {config["error"]}')
