@@ -69,7 +69,8 @@ class TrueNASConnectAuthenticator:
             requests.delete(
                 get_leca_cleanup_url(self.tnc_config), headers=auth_headers(self.tnc_config),
                 timeout=30, data=json.dumps({
-                    'hostnames': [validation_name],  # We use validation name here instead of domain as Zack advised
+                    'hostnames': [validation_name, f'*.{domain}'],
+                    # We would like to pass in domain here as well to remove the wildcard record
                 })
             )
         except Exception:
