@@ -5,6 +5,9 @@ TNC_CONFIG_SCHEMA = {
         'jwt_token': {'oneOf': [{'type': 'null'}, {'type': 'string'}]},
         'registration_details': {'type': 'object', 'additionalProperties': True},
         'ips': {'type': 'array', 'items': {'type': 'string'}},
+        'interfaces': {'type': 'array', 'items': {'type': 'string'}},
+        'interfaces_ips': {'type': 'array', 'items': {'type': 'string'}},
+        'use_all_interfaces': {'type': 'boolean'},
         'csr_public_key': {'oneOf': [{'type': 'null'}, {'type': 'string'}]},
         'certificate_public_key': {'oneOf': [{'type': 'null'}, {'type': 'string'}]},
         'certificate_private_key': {'oneOf': [{'type': 'null'}, {'type': 'string'}]},
@@ -23,9 +26,10 @@ TNC_CONFIG_SCHEMA = {
         'enabled': {'type': 'boolean'},
     },
     'required': [
-        'jwt_token', 'registration_details', 'ips', 'certificate_public_key', 'certificate_private_key',
-        'csr_public_key', 'account_service_base_url', 'leca_service_base_url', 'tnc_base_url', 'claim_token',
-        'enabled', 'system_id', 'truenas_version', 'initialization_in_progress', 'initialization_completed',
+        'jwt_token', 'registration_details', 'ips', 'interfaces', 'interfaces_ips', 'use_all_interfaces',
+        'certificate_public_key', 'certificate_private_key', 'csr_public_key', 'account_service_base_url',
+        'leca_service_base_url', 'heartbeat_service_base_url', 'tnc_base_url', 'claim_token', 'enabled',
+        'system_id', 'truenas_version', 'initialization_in_progress', 'initialization_completed',
         'initialization_error',
     ],
 }
