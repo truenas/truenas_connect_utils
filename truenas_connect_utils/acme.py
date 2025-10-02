@@ -1,6 +1,5 @@
 import asyncio
 import logging
-from urllib.parse import urlparse
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
@@ -34,14 +33,14 @@ async def acme_config(tnc_config: dict) -> dict:
     )
     resp['acme_details'] = resp.pop('response')
     if resp['error'] is None:
-        resp = normalize_acme_config(resp)
+        resp = await normalize_acme_config(resp)
 
     return resp | {
         'tnc_configured': True,
     }
 
 
-def normalize_acme_config(config: dict) -> dict:
+async def normalize_acme_config(config: dict) -> dict:
     acme_details = config.get('acme_details')
     if isinstance(acme_details, dict) is False:
         config['error'] = 'ACME config is not a dictionary'
@@ -63,19 +62,34 @@ def normalize_acme_config(config: dict) -> dict:
         config['error'] = 'ACME endpoint is not a string'
         return config
 
+    directory_url = endpoint if endpoint.startswith(('http://', 'https://')) else f'https://{endpoint}'
+    directory_resp = await call(directory_url, 'get')
+    if directory_resp['error']:
+        config['error'] = f'Failed to fetch ACME directory: {directory_resp["error"]}'
+        return config
+
+    directory = directory_resp['response']
+    if not isinstance(directory, dict):
+        config['error'] = 'ACME directory response is not a dictionary'
+        return config
+
+    required_endpoints = ('newNonce', 'newAccount', 'newOrder', 'revokeCert')
+    if missing := [k for k in required_endpoints if k not in directory]:
+        config['error'] = f'ACME directory missing endpoints: {", ".join(missing)}'
+        return config
+
     private_key = serialization.load_pem_private_key(
         account_details['key'].encode(), password=None, backend=default_backend()
     )
     jwk_rsa = JWKRSA(key=private_key)
-    parsed_url = urlparse(f'https://{endpoint}')
     config['acme_details'] = {
         'uri': account_details['uri'],
-        'directory': endpoint,
+        'directory': directory_url,
         'tos': True,
-        'new_account_uri': f'{parsed_url.scheme}://{parsed_url.netloc}/acme/new-acct',
-        'new_nonce_uri': f'{parsed_url.scheme}://{parsed_url.netloc}/acme/new-nonce',
-        'new_order_uri': f'{parsed_url.scheme}://{parsed_url.netloc}/acme/new-order',
-        'revoke_cert_uri': f'{parsed_url.scheme}://{parsed_url.netloc}/acme/revoke-cert',
+        'new_account_uri': directory['newAccount'],
+        'new_nonce_uri': directory['newNonce'],
+        'new_order_uri': directory['newOrder'],
+        'revoke_cert_uri': directory['revokeCert'],
         'body': {
             'status': account_details['status'],
             'key': jwk_rsa.json_dumps(),
