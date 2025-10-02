@@ -74,7 +74,7 @@ async def normalize_acme_config(config: dict) -> dict:
         config['error'] = 'ACME directory response is not a dictionary'
         return config
 
-    required_endpoints = ['newNonce', 'newAccount', 'newOrder', 'revokeCert']
+    required_endpoints = ('newNonce', 'newAccount', 'newOrder', 'revokeCert')
     if missing := [k for k in required_endpoints if k not in directory]:
         config['error'] = f'ACME directory missing endpoints: {", ".join(missing)}'
         return config
