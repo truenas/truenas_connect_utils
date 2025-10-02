@@ -84,7 +84,7 @@ def normalize_acme_config(config: dict) -> dict:
     return config
 
 
-async def create_cert(tnc_config: dict, csr_details: dict | None = None) -> dict:
+async def create_cert(tnc_config: dict, csr: bytes | None = None, private_key: str | None = None) -> dict:
     tnc_hostname_config = await hostname_config(tnc_config)
     if tnc_hostname_config['error']:
         raise CallError(f'Failed to fetch TN Connect hostname config: {tnc_hostname_config["error"]}')
@@ -94,12 +94,11 @@ async def create_cert(tnc_config: dict, csr_details: dict | None = None) -> dict
         raise CallError(f'Failed to fetch TN Connect ACME config: {tnc_acme_config["error"]}')
 
     hostnames = get_hostnames_from_hostname_config(tnc_hostname_config)
-    if csr_details is None:
+    if csr is None or private_key is None:
         logger.debug('Generating CSR for TNC certificate')
         csr, private_key = await asyncio.to_thread(generate_csr, hostnames)
     else:
         logger.debug('Retrieved CSR of existing TNC certificate')
-        csr, private_key = csr_details['csr'], csr_details['private_key']
 
     authenticator_mapping = {f'DNS:{hostname}': TrueNASConnectAuthenticator(tnc_config) for hostname in hostnames}
     logger.debug('Performing ACME challenge for TNC certificate')
@@ -110,5 +109,5 @@ async def create_cert(tnc_config: dict, csr_details: dict | None = None) -> dict
         'cert': final_order.fullchain_pem,
         'acme_uri': final_order.uri,
         'private_key': private_key,
-        'csr': csr,
+        'csr': csr.decode(),
     }
