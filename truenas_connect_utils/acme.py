@@ -90,10 +90,11 @@ async def normalize_acme_config(config: dict) -> dict:
         'new_nonce_uri': directory['newNonce'],
         'new_order_uri': directory['newOrder'],
         'revoke_cert_uri': directory['revokeCert'],
+        'renewal_info': directory['renewalInfo'],
         'body': {
             'status': account_details['status'],
             'key': jwk_rsa.json_dumps(),
-        }
+        },
     }
     return config
 
