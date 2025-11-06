@@ -49,3 +49,31 @@ async def register_update_ips(tnc_config: dict, ips: list[str], create_wildcard:
         get_hostname_url(tnc_config).format(**creds), 'put', payload={'ips': ips, 'create_wildcards': create_wildcard},
         tnc_config=tnc_config, include_auth=True,
     )
+
+
+async def register_system_config(tnc_config: dict, websocket_port: int) -> dict:
+    """
+    Register or update system configuration including websocket port with TrueNAS Connect.
+
+    Args:
+        tnc_config: TrueNAS Connect configuration dictionary
+        websocket_port: The HTTPS port that should be used for websocket connections
+
+    Returns:
+        dict: Response from TNC API with 'error', 'response', and 'status_code' keys
+    """
+    logger.debug('Registering system configuration with TNC using websocket port %d', websocket_port)
+
+    creds = get_account_id_and_system_id(tnc_config)
+    if not tnc_config['enabled'] or creds is None:
+        raise CallError('TrueNAS Connect is not enabled or not configured properly')
+
+    from .urls import get_account_service_url
+
+    return await call(
+        get_account_service_url(tnc_config).format(**creds),
+        'put',
+        payload={'websocket_port': websocket_port},
+        tnc_config=tnc_config,
+        include_auth=True,
+    )
