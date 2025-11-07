@@ -3,7 +3,7 @@ import logging
 from .config import get_account_id_and_system_id
 from .exceptions import CallError
 from .request import call
-from .urls import get_hostname_url
+from .urls import get_hostname_url, get_account_service_url
 
 
 logger = logging.getLogger('truenas_connect')
@@ -68,12 +68,10 @@ async def register_system_config(tnc_config: dict, websocket_port: int) -> dict:
     if not tnc_config['enabled'] or creds is None:
         raise CallError('TrueNAS Connect is not enabled or not configured properly')
 
-    from .urls import get_account_service_url
-
     return await call(
         get_account_service_url(tnc_config).format(**creds),
         'put',
-        payload={'websocket_port': websocket_port},
+        payload={'port': websocket_port},
         tnc_config=tnc_config,
         include_auth=True,
     )
