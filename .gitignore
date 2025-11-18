@@ -1,2 +1,4 @@
 /build/
 /*.egg-info/
+/.idea/
+__pycache__
