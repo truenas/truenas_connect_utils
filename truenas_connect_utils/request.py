@@ -20,6 +20,7 @@ async def call(
         'error': None,
         'response': {},
         'status_code': None,
+        'headers': {},
     }
     headers = headers or {}
     if payload is not None and (not headers or 'Content-Type' not in headers):
@@ -51,6 +52,7 @@ async def call(
     except aiohttp.ClientConnectorError as e:
         response['error'] = f'Failed to connect to TNC: {e}'
     else:
+        response['headers'] = req.headers
         if get_response:
             response['response'] = await req.json() if json_response else await req.text()
     return response
