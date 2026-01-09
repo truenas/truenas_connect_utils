@@ -1,5 +1,7 @@
 import asyncio
 import logging
+from concurrent.futures import Executor
+from typing import Callable, TypeVar
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
@@ -16,6 +18,33 @@ from .urls import get_acme_config_url
 
 
 logger = logging.getLogger('truenas_connect')
+
+T = TypeVar('T')
+
+
+async def run_in_thread(
+    func: Callable[..., T],
+    *args,
+    executor: Executor | None = None,
+) -> T:
+    """
+    Run a blocking function in a thread pool.
+
+    If an executor is provided, it will be used. Otherwise, falls back to
+    asyncio.to_thread which uses the default executor.
+
+    Args:
+        func: The blocking function to run
+        *args: Arguments to pass to the function
+        executor: Optional executor to use for running the function
+
+    Returns:
+        The result of the function call
+    """
+    if executor is not None:
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(executor, func, *args)
+    return await asyncio.to_thread(func, *args)
 
 
 async def acme_config(tnc_config: dict) -> dict:
@@ -99,7 +128,13 @@ async def normalize_acme_config(config: dict) -> dict:
     return config
 
 
-async def create_cert(tnc_config: dict, csr_details: dict | None = None, cert_renewal_id: str | None = None) -> dict:
+async def create_cert(
+    tnc_config: dict,
+    csr_details: dict | None = None,
+    cert_renewal_id: str | None = None,
+    *,
+    executor: Executor | None = None,
+) -> dict:
     tnc_hostname_config = await hostname_config(tnc_config)
     if tnc_hostname_config['error']:
         raise CallError(f'Failed to fetch TN Connect hostname config: {tnc_hostname_config["error"]}')
@@ -111,15 +146,21 @@ async def create_cert(tnc_config: dict, csr_details: dict | None = None, cert_re
     hostnames = get_hostnames_from_hostname_config(tnc_hostname_config)
     if csr_details is None:
         logger.debug('Generating CSR for TNC certificate')
-        csr, private_key = await asyncio.to_thread(generate_csr, hostnames)
+        csr, private_key = await run_in_thread(generate_csr, hostnames, executor=executor)
     else:
         logger.debug('Retrieved CSR of existing TNC certificate')
         csr, private_key = csr_details['csr'], csr_details['private_key']
 
     authenticator_mapping = {f'DNS:{hostname}': TrueNASConnectAuthenticator(tnc_config) for hostname in hostnames}
     logger.debug('Performing ACME challenge for TNC certificate')
-    final_order = await asyncio.to_thread(
-        issue_certificate, tnc_acme_config['acme_details'], csr, authenticator_mapping, 25, cert_renewal_id,
+    final_order = await run_in_thread(
+        issue_certificate,
+        tnc_acme_config['acme_details'],
+        csr,
+        authenticator_mapping,
+        25,
+        cert_renewal_id,
+        executor=executor,
     )
     return {
         'cert': final_order.fullchain_pem,
