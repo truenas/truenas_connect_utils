@@ -6,7 +6,7 @@ def get_acme_config_url(tnc_config: dict) -> str:
 
 
 def get_account_service_url(tnc_config: dict) -> str:
-    return urllib.parse.urljoin(tnc_config['account_service_base_url'], 'v1/accounts/{account_id}/systems/{system_id}/')
+    return urllib.parse.urljoin(tnc_config['account_service_base_url'], 'v1/accounts/{account_id}/systems/{system_id}')
 
 
 def get_hostname_url(tnc_config: dict) -> str:
