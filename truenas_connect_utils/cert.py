@@ -4,8 +4,8 @@ from truenas_crypto_utils.csr import generate_certificate_signing_request
 CERT_BOT_EMAIL = 'cert-bot@ixsystems.com'
 
 
-def get_hostnames_from_hostname_config(hostname_config: dict) -> list[str]:
-    return [f'*.{hostname_config["base_domain"]}']
+def get_hostnames_from_hostname_config(base_domain: str) -> list[str]:
+    return [f'*.{base_domain}']
 
 
 def generate_csr(hostnames: list[str]) -> (str, str):
