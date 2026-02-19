@@ -105,7 +105,7 @@ async def create_cert(
 ) -> dict:
     base_domain = get_base_domain_from_hostnames(hostname_details)
     if base_domain is None:
-        raise CallError(f'Failed to retrieve base domain for current account')
+        raise CallError('Failed to retrieve base domain for current account')
 
     tnc_acme_config = await acme_config(tnc_config)
     if tnc_acme_config['error']:
