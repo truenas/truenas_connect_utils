@@ -99,7 +99,9 @@ async def normalize_acme_config(config: dict) -> dict:
     return config
 
 
-async def create_cert(tnc_config: dict, csr_details: dict | None = None, cert_renewal_id: str | None = None) -> dict:
+async def create_cert(
+    tnc_config: dict, csr_details: dict | None = None, cert_renewal_id: str | None = None
+) -> dict:
     tnc_hostname_config = await hostname_config(tnc_config)
     if tnc_hostname_config['error']:
         raise CallError(f'Failed to fetch TN Connect hostname config: {tnc_hostname_config["error"]}')
