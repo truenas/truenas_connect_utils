@@ -9,6 +9,14 @@ from .urls import get_hostname_url, get_account_service_url
 logger = logging.getLogger('truenas_connect')
 
 
+def get_base_domain_from_hostnames(hostname_details: dict) -> str | None:
+    for domain in hostname_details:
+        if len(domain.rsplit('.', maxsplit=4)) == 5:
+            return domain.split('.', maxsplit=1)[-1]
+
+    return None
+
+
 async def hostname_config(tnc_config: dict) -> dict:
     creds = get_account_id_and_system_id(tnc_config)
     if not tnc_config['enabled'] or creds is None:
@@ -24,10 +32,7 @@ async def hostname_config(tnc_config: dict) -> dict:
         get_hostname_url(tnc_config).format(**creds), 'get', tnc_config=tnc_config, include_auth=True,
     )) | {'base_domain': None}
     resp['hostname_details'] = resp.pop('response')
-    for domain in resp['hostname_details']:
-        if len(domain.rsplit('.', maxsplit=4)) == 5:
-            resp['base_domain'] = domain.split('.', maxsplit=1)[-1]
-            break
+    resp['base_domain'] = get_base_domain_from_hostnames(resp['hostname_details'])
 
     return resp | {
         'tnc_configured': True,
@@ -45,10 +50,14 @@ async def register_update_ips(tnc_config: dict, ips: list[str], create_wildcard:
         raise CallError(f'Failed to fetch TNC hostname configuration: {config["error"]}')
 
     creds = get_account_id_and_system_id(tnc_config)
-    return await call(
+    resp = await call(
         get_hostname_url(tnc_config).format(**creds), 'put', payload={'ips': ips, 'create_wildcards': create_wildcard},
         tnc_config=tnc_config, include_auth=True,
     )
+    if resp['error']:
+        raise CallError(f'Failed to update TNC hostname configuration: {resp["error"]}')
+
+    return resp
 
 
 async def register_system_config(tnc_config: dict, websocket_port: int) -> dict:

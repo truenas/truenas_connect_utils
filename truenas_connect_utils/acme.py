@@ -9,7 +9,7 @@ from truenas_acme_utils.issue_cert import issue_certificate
 from .cert import get_hostnames_from_hostname_config, generate_csr
 from .config import get_account_id_and_system_id
 from .exceptions import CallError
-from .hostname import hostname_config
+from .hostname import get_base_domain_from_hostnames
 from .request import call
 from .tnc_authenticator import TrueNASConnectAuthenticator
 from .urls import get_acme_config_url
@@ -99,16 +99,19 @@ async def normalize_acme_config(config: dict) -> dict:
     return config
 
 
-async def create_cert(tnc_config: dict, csr_details: dict | None = None, cert_renewal_id: str | None = None) -> dict:
-    tnc_hostname_config = await hostname_config(tnc_config)
-    if tnc_hostname_config['error']:
-        raise CallError(f'Failed to fetch TN Connect hostname config: {tnc_hostname_config["error"]}')
+async def create_cert(
+    tnc_config: dict, hostname_details: dict[str, str], csr_details: dict | None = None,
+    cert_renewal_id: str | None = None,
+) -> dict:
+    base_domain = get_base_domain_from_hostnames(hostname_details)
+    if base_domain is None:
+        raise CallError('Failed to retrieve base domain for current account')
 
     tnc_acme_config = await acme_config(tnc_config)
     if tnc_acme_config['error']:
         raise CallError(f'Failed to fetch TN Connect ACME config: {tnc_acme_config["error"]}')
 
-    hostnames = get_hostnames_from_hostname_config(tnc_hostname_config)
+    hostnames = get_hostnames_from_hostname_config(base_domain)
     if csr_details is None:
         logger.debug('Generating CSR for TNC certificate')
         csr, private_key = await asyncio.to_thread(generate_csr, hostnames)
