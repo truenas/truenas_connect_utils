@@ -44,8 +44,8 @@ class TrueNASConnectAuthenticator:
 
     def _perform_internal(self, domain, validation_name, validation_content):
         logger.debug(
-            'Performing %r challenge for %r domain with %r validation name and %r validation content',
-            self.NAME, domain, validation_name, validation_content,
+            'Performing %r challenge for %r domain (endpoint: %s) with %r validation name and %r validation content',
+            self.NAME, domain, get_leca_dns_url(self.tnc_config), validation_name, validation_content,
         )
         try:
             response = requests.post(get_leca_dns_url(self.tnc_config), data=json.dumps({
@@ -61,10 +61,16 @@ class TrueNASConnectAuthenticator:
                 f'{response.status_code!r} status code: {response.text}'
             )
 
-        logger.debug('Successfully performed %r challenge for %r domain', self.NAME, domain)
+        logger.debug(
+            'Successfully performed %r challenge for %r domain (status: %d)',
+            self.NAME, domain, response.status_code,
+        )
 
     def _cleanup(self, domain, validation_name, validation_content):
-        logger.debug('Cleaning up %r challenge for %r domain', self.NAME, domain)
+        logger.debug(
+            'Cleaning up %r challenge for %r domain (endpoint: %s)',
+            self.NAME, domain, get_leca_cleanup_url(self.tnc_config),
+        )
         try:
             requests.delete(
                 get_leca_cleanup_url(self.tnc_config), headers=auth_headers(self.tnc_config),
