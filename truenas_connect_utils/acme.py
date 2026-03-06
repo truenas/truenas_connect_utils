@@ -120,10 +120,20 @@ async def create_cert(
         csr, private_key = csr_details['csr'], csr_details['private_key']
 
     authenticator_mapping = {f'DNS:{hostname}': TrueNASConnectAuthenticator(tnc_config) for hostname in hostnames}
-    logger.debug('Performing ACME challenge for TNC certificate')
-    final_order = await asyncio.to_thread(
-        issue_certificate, tnc_acme_config['acme_details'], csr, authenticator_mapping, 25, cert_renewal_id,
+    logger.debug(
+        'Initiating ACME order for hostnames: %s (directory: %s)',
+        hostnames, tnc_acme_config['acme_details']['directory'],
     )
+    try:
+        final_order = await asyncio.to_thread(
+            issue_certificate, tnc_acme_config['acme_details'], csr, authenticator_mapping, 25, cert_renewal_id,
+        )
+    except Exception as e:
+        extra = getattr(e, 'extra', None)
+        if isinstance(extra, dict) and extra.get('order_uri'):
+            logger.debug('ACME order failed, order URL: %s', extra['order_uri'])
+        raise
+    logger.debug('ACME order completed successfully, order URL: %s', final_order.uri)
     return {
         'cert': final_order.fullchain_pem,
         'acme_uri': final_order.uri,
