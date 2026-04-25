@@ -1,4 +1,7 @@
-TNC_CONFIG_SCHEMA = {
+from typing import Any
+
+
+TNC_CONFIG_SCHEMA: dict[str, Any] = {
     '$schema': 'http://json-schema.org/draft-07/schema#',
     'type': 'object',
     'properties': {

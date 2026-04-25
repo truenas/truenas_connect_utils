@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from .config import get_account_id_and_system_id
 from .exceptions import CallError
@@ -9,7 +10,7 @@ from .urls import get_hostname_url, get_account_service_url
 logger = logging.getLogger('truenas_connect')
 
 
-def get_base_domain_from_hostnames(hostname_details: dict) -> str | None:
+def get_base_domain_from_hostnames(hostname_details: dict[str, Any]) -> str | None:
     for domain in hostname_details:
         if len(domain.rsplit('.', maxsplit=4)) == 5:
             return domain.split('.', maxsplit=1)[-1]
@@ -17,7 +18,7 @@ def get_base_domain_from_hostnames(hostname_details: dict) -> str | None:
     return None
 
 
-async def hostname_config(tnc_config: dict) -> dict:
+async def hostname_config(tnc_config: dict[str, Any]) -> dict[str, Any]:
     creds = get_account_id_and_system_id(tnc_config)
     if not tnc_config['enabled'] or creds is None:
         return {
@@ -40,7 +41,7 @@ async def hostname_config(tnc_config: dict) -> dict:
     }
 
 
-async def register_update_ips(tnc_config: dict, ips: list[str], create_wildcard: bool) -> dict:
+async def register_update_ips(tnc_config: dict[str, Any], ips: list[str], create_wildcard: bool) -> dict[str, Any]:
     logger.debug(
         'Updating TNC hostname configuration with %r ips and with create_wildcard %r value',
         ','.join(ips), create_wildcard
@@ -50,6 +51,9 @@ async def register_update_ips(tnc_config: dict, ips: list[str], create_wildcard:
         raise CallError(f'Failed to fetch TNC hostname configuration: {config["error"]}')
 
     creds = get_account_id_and_system_id(tnc_config)
+    if creds is None:
+        raise CallError('TrueNAS Connect is not enabled or not configured properly')
+
     resp = await call(
         get_hostname_url(tnc_config).format(**creds), 'put', payload={'ips': ips, 'create_wildcards': create_wildcard},
         tnc_config=tnc_config, include_auth=True,
@@ -60,7 +64,7 @@ async def register_update_ips(tnc_config: dict, ips: list[str], create_wildcard:
     return resp
 
 
-async def register_system_config(tnc_config: dict, websocket_port: int) -> dict:
+async def register_system_config(tnc_config: dict[str, Any], websocket_port: int) -> dict[str, Any]:
     """
     Register or update system configuration including websocket port with TrueNAS Connect.
 
