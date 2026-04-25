@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "truenas_connect_utils"
+version = "0.1"
+description = "TrueNAS Scale System TrueNAS Connect Utils"
+license = {text = "GNU3"}
+requires-python = ">=3.11"
+dependencies = [
+    "aiohttp",
+    "cryptography",
+    "josepy",
+    "pyjwt",
+    "requests",
+]
+
+[tool.setuptools.packages.find]
+include = [
+    "truenas_connect_utils",
+    "truenas_connect_utils.*",
+]
+
+[tool.setuptools.package-data]
+truenas_connect_utils = ["py.typed"]
+
+[tool.mypy]
+python_version = "3.13"
+warn_return_any = true
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+check_untyped_defs = true
+no_implicit_optional = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = [
+    "josepy.*",
+    "truenas_api_client.*",
+    "truenas_acme_utils.*",
+]
+ignore_missing_imports = true

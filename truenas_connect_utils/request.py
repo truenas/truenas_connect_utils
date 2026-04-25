@@ -1,22 +1,26 @@
 import asyncio
-from typing import Any
+from collections.abc import Callable
+from typing import Any, Literal
 
 import aiohttp
 from truenas_api_client import json
 
 
-def auth_headers(config: dict) -> dict:
+Mode = Literal['get', 'post', 'put', 'delete', 'patch', 'head']
+
+
+def auth_headers(config: dict[str, Any]) -> dict[str, str]:
     return {'Authorization': f'Bearer {config["jwt_token"]}'}
 
 
 async def call(
-    endpoint: str, mode: str, *, options: dict | None = None, payload: dict | None = None,
-    headers: dict | None = None, json_response: bool = True, get_response: bool = True,
-    tnc_config: dict | None = None, include_auth: bool = False,
+    endpoint: str, mode: Mode, *, options: dict[str, Any] | None = None, payload: dict[str, Any] | None = None,
+    headers: dict[str, str] | None = None, json_response: bool = True, get_response: bool = True,
+    tnc_config: dict[str, Any] | None = None, include_auth: bool = False,
 ) -> dict[str, Any]:
     options = options or {}
     timeout = options.get('timeout', 15)
-    response = {
+    response: dict[str, Any] = {
         'error': None,
         'response': {},
         'status_code': None,
@@ -36,7 +40,8 @@ async def call(
     try:
         async with asyncio.timeout(timeout):
             async with aiohttp.ClientSession(raise_for_status=True, trust_env=True) as session:
-                req = await getattr(session, mode)(
+                session_method: Callable[..., Any] = getattr(session, mode)
+                req = await session_method(
                     endpoint,
                     data=json.dumps(payload) if payload is not None else payload,
                     headers=headers,

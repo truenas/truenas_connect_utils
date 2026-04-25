@@ -1,7 +1,9 @@
 import json
 import logging
-import requests
 import time
+from typing import Any
+
+import requests
 
 from .exceptions import CallError
 from .request import auth_headers
@@ -13,36 +15,36 @@ logger = logging.getLogger('truenas_connect')
 
 class TrueNASConnectAuthenticator:
 
-    NAME = 'tn_connect'
-    PROPAGATION_DELAY = 20
+    NAME: str = 'tn_connect'
+    PROPAGATION_DELAY: int = 20
 
-    def __init__(self, tnc_config: dict):
+    def __init__(self, tnc_config: dict[str, Any]) -> None:
         self.tnc_config = tnc_config
 
-    def perform(self, domain, validation_name, validation_content):
+    def perform(self, domain: str, validation_name: str, validation_content: str) -> None:
         try:
-            perform_ret = self._perform(domain, validation_name, validation_content)
+            self._perform(domain, validation_name, validation_content)
         except Exception as e:
             raise CallError(f'Failed to perform {self.NAME} challenge for {domain!r} domain: {e}')
         else:
-            self.wait_for_records_to_propagate(perform_ret)
+            self.wait_for_records_to_propagate(None)
 
-    def wait_for_records_to_propagate(self, perform_ret):
+    def wait_for_records_to_propagate(self, perform_ret: Any) -> None:
         time.sleep(self.PROPAGATION_DELAY)
 
-    def cleanup(self, domain, validation_name, validation_content):
+    def cleanup(self, domain: str, validation_name: str, validation_content: str) -> None:
         try:
             self._cleanup(domain, validation_name, validation_content)
         except Exception as e:
             raise CallError(f'Failed to cleanup {self.NAME} challenge for {domain!r} domain: {e}')
 
-    def _perform(self, domain, validation_name, validation_content):
+    def _perform(self, domain: str, validation_name: str, validation_content: str) -> None:
         try:
             self._perform_internal(domain, validation_name, validation_content)
         except Exception as e:
             raise CallError(f'Failed to perform {self.NAME} challenge for {domain!r} domain: {e}')
 
-    def _perform_internal(self, domain, validation_name, validation_content):
+    def _perform_internal(self, domain: str, validation_name: str, validation_content: str) -> None:
         logger.debug(
             'Performing %r challenge for %r domain (endpoint: %s) with %r validation name and %r validation content',
             self.NAME, domain, get_leca_dns_url(self.tnc_config), validation_name, validation_content,
@@ -66,7 +68,7 @@ class TrueNASConnectAuthenticator:
             self.NAME, domain, response.status_code,
         )
 
-    def _cleanup(self, domain, validation_name, validation_content):
+    def _cleanup(self, domain: str, validation_name: str, validation_content: str) -> None:
         logger.debug(
             'Cleaning up %r challenge for %r domain (endpoint: %s)',
             self.NAME, domain, get_leca_cleanup_url(self.tnc_config),
