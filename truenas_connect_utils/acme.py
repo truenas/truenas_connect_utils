@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from typing import Any
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
@@ -18,7 +19,7 @@ from .urls import get_acme_config_url
 logger = logging.getLogger('truenas_connect')
 
 
-async def acme_config(tnc_config: dict) -> dict:
+async def acme_config(tnc_config: dict[str, Any]) -> dict[str, Any]:
     creds = get_account_id_and_system_id(tnc_config)
     if not tnc_config['enabled'] or creds is None:
         return {
@@ -40,14 +41,14 @@ async def acme_config(tnc_config: dict) -> dict:
     }
 
 
-async def normalize_acme_config(config: dict) -> dict:
+async def normalize_acme_config(config: dict[str, Any]) -> dict[str, Any]:
     acme_details = config.get('acme_details')
-    if isinstance(acme_details, dict) is False:
+    if not isinstance(acme_details, dict):
         config['error'] = 'ACME config is not a dictionary'
         return config
 
     account_details = acme_details.get('account')
-    if isinstance(account_details, dict) is False:
+    if not isinstance(account_details, dict):
         config['error'] = 'ACME account details are not a dictionary'
         return config
 
@@ -58,7 +59,7 @@ async def normalize_acme_config(config: dict) -> dict:
         return config
 
     endpoint = acme_details.get('endpoint')
-    if isinstance(endpoint, str) is False:
+    if not isinstance(endpoint, str):
         config['error'] = 'ACME endpoint is not a string'
         return config
 
@@ -100,9 +101,9 @@ async def normalize_acme_config(config: dict) -> dict:
 
 
 async def create_cert(
-    tnc_config: dict, hostname_details: dict[str, str], csr_details: dict | None = None,
+    tnc_config: dict[str, Any], hostname_details: dict[str, str], csr_details: dict[str, Any] | None = None,
     cert_renewal_id: str | None = None,
-) -> dict:
+) -> dict[str, Any]:
     base_domain = get_base_domain_from_hostnames(hostname_details)
     if base_domain is None:
         raise CallError('Failed to retrieve base domain for current account')

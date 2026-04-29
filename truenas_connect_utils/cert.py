@@ -8,7 +8,7 @@ def get_hostnames_from_hostname_config(base_domain: str) -> list[str]:
     return [f'*.{base_domain}']
 
 
-def generate_csr(hostnames: list[str]) -> (str, str):
+def generate_csr(hostnames: list[str]) -> tuple[str, str]:
     return generate_certificate_signing_request({
         'key_type': 'RSA',
         'key_length': 4096,

@@ -1,7 +1,7 @@
 import inspect
 import logging
 
-from typing import Callable
+from collections.abc import Callable
 
 from .exceptions import CallError
 
@@ -11,9 +11,9 @@ logger = logging.getLogger(__name__)
 
 class EventCallback:
 
-    CALLBACKS: list[Callable] = []
+    CALLBACKS: list[Callable[[int, str], None]] = []
 
-    def register(self, callback: Callable):
+    def register(self, callback: Callable[[int, str], None]) -> None:
         if not callable(callback):
             raise CallError('Callback must be a callable')
 
@@ -25,17 +25,17 @@ class EventCallback:
 
         self.CALLBACKS.append(callback)
 
-    def clear(self):
+    def clear(self) -> None:
         self.CALLBACKS = []
 
-    def remove_callback(self, callback: Callable):
+    def remove_callback(self, callback: Callable[[int, str], None]) -> None:
         self.CALLBACKS.remove(callback)
 
 
 event_callbacks = EventCallback()
 
 
-def send_event(progress: int, text: str):
+def send_event(progress: int, text: str) -> None:
     for callback in event_callbacks.CALLBACKS:
         try:
             callback(progress, text)
