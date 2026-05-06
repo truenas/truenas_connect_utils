@@ -15,7 +15,7 @@ async def call(
     tnc_config: dict | None = None, include_auth: bool = False,
 ) -> dict[str, Any]:
     options = options or {}
-    timeout = options.get('timeout', 15)
+    timeout = options.get('timeout', 55)
     response = {
         'error': None,
         'response': {},
