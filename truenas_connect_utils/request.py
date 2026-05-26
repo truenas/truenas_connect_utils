@@ -39,25 +39,36 @@ async def call(
 
     try:
         async with asyncio.timeout(timeout):
-            async with aiohttp.ClientSession(raise_for_status=True, trust_env=True) as session:
+            async with aiohttp.ClientSession(trust_env=True) as session:
                 session_method: Callable[..., Any] = getattr(session, mode)
                 req = await session_method(
                     endpoint,
                     data=json.dumps(payload) if payload is not None else payload,
                     headers=headers,
                 )
-                response['status_code'] = req.status
+                # Capture locally first; only commit to `response` after the body
+                # is fully read. If the timeout fires mid-body, status_code stays
+                # None so callers see a transport failure (RETRY) rather than a
+                # bogus 2xx with empty body (which would otherwise classify as
+                # TERMINAL "token missing").
+                status = req.status
+                resp_headers = {k.title(): v for k, v in req.headers.items()}
+                body: Any = {}
+                if get_response:
+                    if json_response:
+                        try:
+                            body = await req.json()
+                        except (aiohttp.ContentTypeError, ValueError):
+                            body = await req.text()
+                    else:
+                        body = await req.text()
+                response['status_code'] = status
+                response['headers'] = resp_headers
+                response['response'] = body
+                if status >= 400:
+                    response['error'] = f'HTTP {status}: {body!r}'
     except asyncio.TimeoutError:
         response['error'] = f'Unable to connect with TNC in {timeout} seconds.'
-    except aiohttp.ClientResponseError as e:
-        response.update({
-            'error': str(e),
-            'status_code': e.status,
-        })
     except aiohttp.ClientConnectorError as e:
         response['error'] = f'Failed to connect to TNC: {e}'
-    else:
-        response['headers'] = {k.title(): v for k, v in req.headers.items()}
-        if get_response:
-            response['response'] = await req.json() if json_response else await req.text()
     return response
