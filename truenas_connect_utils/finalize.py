@@ -45,7 +45,10 @@ def classify_finalize_response(resp: dict[str, Any]) -> tuple[FinalizeResult, st
     if status in RETRYABLE_STATUS_CODES:
         return FinalizeResult.RETRY, f'TNC {status}: {body!r}'
 
-    if status == 400 and isinstance(body, dict) and body.get('error') in RETRYABLE_400_ERROR_STRINGS:
+    if (
+        status == 400 and isinstance(body, dict) and isinstance(body.get('error'), str)
+        and body['error'] in RETRYABLE_400_ERROR_STRINGS
+    ):
         return FinalizeResult.RETRY, f'TNC pending registration: {body!r}'
 
     return FinalizeResult.TERMINAL, f'TNC {status}: {body!r}'

@@ -54,19 +54,28 @@ async def call(
                 status = req.status
                 resp_headers = {k.title(): v for k, v in req.headers.items()}
                 body: Any = {}
+                parse_error: str | None = None
                 if get_response:
                     if json_response:
                         try:
                             body = await req.json()
                         except (aiohttp.ContentTypeError, ValueError):
-                            body = await req.text()
+                            raw = await req.text()
+                            content_type = req.headers.get('Content-Type', '<missing>')
+                            parse_error = (
+                                f'expected JSON, got Content-Type {content_type!r}, body={raw[:500]!r}'
+                            )
+                            body = {}
                     else:
                         body = await req.text()
                 response['status_code'] = status
                 response['headers'] = resp_headers
                 response['response'] = body
                 if status >= 400:
-                    response['error'] = f'HTTP {status}: {body!r}'
+                    detail = parse_error if parse_error is not None else repr(body)
+                    response['error'] = f'HTTP {status}: {detail}'
+                elif parse_error is not None:
+                    response['error'] = f'HTTP {status}: {parse_error}'
     except asyncio.TimeoutError:
         response['error'] = f'Unable to connect with TNC in {timeout} seconds.'
     except aiohttp.ClientConnectorError as e:
