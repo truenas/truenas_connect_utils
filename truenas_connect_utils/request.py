@@ -16,7 +16,7 @@ async def call(
 ) -> dict[str, Any]:
     options = options or {}
     timeout = options.get('timeout', 55)
-    response = {
+    response: dict[str, Any] = {
         'error': None,
         'response': {},
         'status_code': None,
