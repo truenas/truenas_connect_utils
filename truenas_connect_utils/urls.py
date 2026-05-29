@@ -13,7 +13,7 @@ def get_account_service_url(tnc_config: dict[str, Any]) -> str:
 
 
 def get_hostname_url(tnc_config: dict[str, Any]) -> str:
-    return urllib.parse.urljoin(get_account_service_url(tnc_config) + '/', 'hostnames/')
+    return urllib.parse.urljoin(get_account_service_url(tnc_config) + '/', 'hostnames')
 
 
 def get_leca_dns_url(tnc_config: dict[str, Any]) -> str:
