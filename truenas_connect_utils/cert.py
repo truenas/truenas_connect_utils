@@ -29,7 +29,7 @@ def generate_csr(hostnames: list[str]) -> (str, str):
             'ExtendedKeyUsage': {
                 'enabled': True,
                 'extension_critical': True,
-                'usages': ['SERVER_AUTH', 'CLIENT_AUTH'],
+                'usages': ['SERVER_AUTH'],
             },
             'KeyUsage': {
                 'enabled': True,
