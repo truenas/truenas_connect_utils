@@ -5,30 +5,15 @@ on: [push]
 jobs:
   test:
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/truenas/middleware:master
 
     steps:
-      # Step 1: Checkout the repo
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Step 2: Set up Python
-      - name: Set up Python 3.13
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
+      - name: Install truenas_connect_utils
+        run: pip install --break-system-packages --no-deps --ignore-installed .
 
-      # Step 3: Install dependencies
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install .
-          pip install pytest
-
-      # Step 4: Add project root to PYTHONPATH
-      - name: Set PYTHONPATH
-        run: echo "PYTHONPATH=$GITHUB_WORKSPACE" >> $GITHUB_ENV
-
-      # Step 5: Run tests with pytest
       - name: Run tests
-        run: |
-          pytest -v --disable-pytest-warnings pytest/unit
+        run: pytest -v --disable-pytest-warnings pytest/unit
