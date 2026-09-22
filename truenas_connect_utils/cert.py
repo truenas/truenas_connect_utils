@@ -1,7 +1,8 @@
 from truenas_crypto_utils.csr import generate_certificate_signing_request
 
 
-CERT_BOT_EMAIL = 'cert-bot@ixsystems.com'
+DOMAIN = 'truenas.com'
+CERT_BOT_EMAIL = f'cert-bot@{DOMAIN}'
 
 
 def get_hostnames_from_hostname_config(base_domain: str) -> list[str]:
@@ -14,9 +15,9 @@ def generate_csr(hostnames: list[str]) -> (str, str):
         'key_length': 4096,
         'san': hostnames,
         'country': 'US',
-        'state': 'TN',
-        'city': 'Maryville',
-        'organization': 'iX',
+        'state': 'CA',
+        'city': 'Campbell',
+        'organization': 'iXsystems, Inc. dba TrueNAS',
         'organizational_unit': 'TNC',
         'email': CERT_BOT_EMAIL,
         'digest_algorithm': 'SHA256',
