@@ -6,7 +6,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/truenas/middleware:26
+      image: ghcr.io/truenas/middleware:27
 
     steps:
       - uses: actions/checkout@v4
