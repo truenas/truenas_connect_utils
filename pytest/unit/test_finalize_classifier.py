@@ -1,6 +1,11 @@
 import pytest
 
-from truenas_connect_utils.finalize import FinalizeResult, classify_finalize_response
+from truenas_connect_utils.finalize import (
+    FinalizeResult,
+    TNC_FINALIZE_ERRORS,
+    classify_finalize_response,
+    get_finalize_failure_reason,
+)
 
 
 def make_resp(*, status_code=None, response=None, error=None, headers=None):
@@ -110,3 +115,43 @@ def test_2xx_with_empty_dict_response_is_terminal():
     )
     assert result is FinalizeResult.TERMINAL
     assert 'token missing' in description
+
+
+@pytest.mark.parametrize('error,result', [
+    ('already finalized', FinalizeResult.TERMINAL),
+    ('invalid claim token', FinalizeResult.TERMINAL),
+    ('limit exceeded', FinalizeResult.TERMINAL),
+    ('not found', FinalizeResult.RETRY),
+])
+def test_400_classification_follows_error_map(error, result):
+    assert classify_finalize_response(make_resp(status_code=400, response={'error': error}))[0] is result
+    assert TNC_FINALIZE_ERRORS[error][0] is result
+
+
+@pytest.mark.parametrize('error,reason', [
+    ('already finalized', 'System is already registered in TrueNAS Connect. Remove it there and register again.'),
+    ('invalid claim token', 'TrueNAS Connect rejected the claim token'),
+    ('limit exceeded', 'The TrueNAS Connect account has reached its system limit'),
+])
+def test_failure_reason_uses_display_string_for_mapped_error(error, reason):
+    assert get_finalize_failure_reason(make_resp(status_code=400, response={'error': error})) == reason
+
+
+def test_failure_reason_quotes_unmapped_error():
+    resp = make_resp(status_code=403, response={'error': 'system revoked', 'data': {'id': 'abc'}})
+    assert get_finalize_failure_reason(resp) == 'TrueNAS Connect rejected the registration: system revoked'
+
+
+@pytest.mark.parametrize('resp', [
+    make_resp(status_code=200, response={}),
+    make_resp(status_code=400, response='Bad Request'),
+    make_resp(status_code=400, response={'message': 'no error field'}),
+    make_resp(status_code=400, response={'error': None}),
+    make_resp(status_code=400, response={'error': ['limit exceeded']}),
+    make_resp(status_code=400, response={'error': '   '}),
+    make_resp(status_code=400, response={'error': 'x' * 201}),
+    make_resp(status_code=500, response={'error': 'Traceback (most recent call last):\n  File "x.py"'}),
+    {'status_code': 400, 'response': None},
+])
+def test_failure_reason_is_none_without_usable_error(resp):
+    assert get_finalize_failure_reason(resp) is None
